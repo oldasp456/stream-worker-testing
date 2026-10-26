@@ -5,8 +5,12 @@ cd /d "%~dp0"
 REM Single-file launcher: start Tor on 127.0.0.1:9050, then vote in a loop.
 set "POLL_TIMEOUT=45000"
 
-REM ---- locate tor.exe: portable bundle next to this file, Desktop, or installer dirs
-set "TOR_EXE=%~dp0tor-bundle\tor\tor.exe"
+REM ---- locate tor.exe: same folder first, then portable bundle, Desktop, or installer dirs
+set "TOR_EXE=%~dp0tor.exe"
+if not exist "%TOR_EXE%" set "TOR_EXE=%~dp0tor\tor.exe"
+if not exist "%TOR_EXE%" set "TOR_EXE=%~dp0tor-bundle\tor\tor.exe"
+if not exist "%TOR_EXE%" set "TOR_EXE=%~dp0Tor Browser\Browser\TorBrowser\Tor\tor.exe"
+if not exist "%TOR_EXE%" set "TOR_EXE=%~dp0tor-browser\Browser\TorBrowser\Tor\tor.exe"
 if not exist "%TOR_EXE%" set "TOR_EXE=%USERPROFILE%\Desktop\Tor Browser\Browser\TorBrowser\Tor\tor.exe"
 if not exist "%TOR_EXE%" set "TOR_EXE=%ProgramFiles%\Tor Browser\Browser\TorBrowser\Tor\tor.exe"
 if not exist "%TOR_EXE%" set "TOR_EXE=%ProgramFiles(x86)%\Tor Browser\Browser\TorBrowser\Tor\tor.exe"
@@ -26,7 +30,10 @@ if not exist "%~dp0worker.mjs" (
 )
 if not exist "%TOR_EXE%" (
   echo [error] tor.exe not found. Looked in:
+  echo    %~dp0tor.exe
+  echo    %~dp0tor\tor.exe
   echo    %~dp0tor-bundle\tor\tor.exe
+  echo    %~dp0Tor Browser\Browser\TorBrowser\Tor\tor.exe
   echo    %USERPROFILE%\Desktop\Tor Browser\...
   echo    %ProgramFiles%\Tor Browser\...
   echo    %LOCALAPPDATA%\Tor Browser\...
@@ -42,6 +49,10 @@ set "TOR_GEO=%TOR_DIR%..\Data\Tor\geoip"
 set "TOR_GEO6=%TOR_DIR%..\Data\Tor\geoip6"
 if not exist "%TOR_GEO%" set "TOR_GEO=%~dp0tor-bundle\data\geoip"
 if not exist "%TOR_GEO6%" set "TOR_GEO6=%~dp0tor-bundle\data\geoip6"
+if not exist "%TOR_GEO%" set "TOR_GEO=%~dp0tor\data\geoip"
+if not exist "%TOR_GEO6%" set "TOR_GEO6=%~dp0tor\data\geoip6"
+if not exist "%TOR_GEO%" set "TOR_GEO=%~dp0data\geoip"
+if not exist "%TOR_GEO6%" set "TOR_GEO6=%~dp0data\geoip6"
 
 :loop
 call :ensure_tor
@@ -60,7 +71,9 @@ node -e "const s=require('net').connect(9050,'127.0.0.1');s.on('connect',()=>{s.
 if not errorlevel 1 exit /b 0
 
 echo [Tor] starting: "%TOR_EXE%"
-start /b "" "%TOR_EXE%" --SocksPort 9050 --DataDirectory "%~dp0.tor" --GeoIPFile "%TOR_GEO%" --GeoIPv6File "%TOR_GEO6%"
+set "GEO_ARGS="
+if exist "%TOR_GEO%" if exist "%TOR_GEO6%" set "GEO_ARGS=--GeoIPFile "%TOR_GEO%" --GeoIPv6File "%TOR_GEO6%""
+start /b "" "%TOR_EXE%" --SocksPort 9050 --DataDirectory "%~dp0.tor" %GEO_ARGS%
 
 set /a tries=0
 :wait_port
